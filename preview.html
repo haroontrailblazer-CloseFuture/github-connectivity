@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitHub Trends — ContentGap</title>
+<style>
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Base — matches X Trends white panel exactly ── */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #111;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Page shell (sidebar + content) ── */
+  .shell { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 263px;
+    flex-shrink: 0;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px 16px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: #fff;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 13px; color: #111; letter-spacing: -1px;
+  }
+  .logo-text { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.01em; }
+  .sidebar-project {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 12px 16px;
+    padding: 10px 12px;
+    background: #222;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .project-avatar {
+    width: 28px; height: 28px;
+    background: #e94560;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .project-name { color: #fff; font-size: 13px; font-weight: 600; }
+  .project-ws   { color: #888; font-size: 11px; }
+  .project-chevron { margin-left: auto; color: #666; font-size: 12px; }
+
+  .nav-label {
+    color: #555;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0 20px 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    color: #aaa;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 0;
+    transition: color 0.12s, background 0.12s;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: #fff; background: #1a1a1a; }
+  .nav-item.active {
+    color: #fff;
+    background: #222;
+  }
+  .nav-item.active .nav-icon { color: #22c55e; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; display:flex; align-items:center; justify-content:center; }
+  .nav-bottom { margin-top: auto; padding: 16px 0 8px; border-top: 1px solid #1e1e1e; }
+
+  /* ── Main content panel — white, matches screenshot exactly ── */
+  .main {
+    flex: 1;
+    background: #fff;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 0;
+  }
+  .topbar-left { }
+  .page-title { font-size: 22px; font-weight: 700; color: #111; }
+  .page-date   { font-size: 13px; color: #888; margin-top: 2px; padding-bottom: 16px; }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 16px;
+  }
+  .topbar-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #444;
+    cursor: pointer;
+    background: #fff;
+    transition: background 0.1s;
+  }
+  .topbar-pill:hover { background: #f8f8f8; }
+  .topbar-pill .pill-icon { font-size: 13px; }
+  .topbar-icon-btn {
+    width: 32px; height: 32px;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    background: #fff;
+    color: #555;
+    font-size: 14px;
+    transition: background 0.1s;
+  }
+  .topbar-icon-btn:hover { background: #f8f8f8; }
+
+  /* ── Summary / Tweets / Accounts tabs ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 28px;
+    border-bottom: 1px solid #ebebeb;
+  }
+  .tab-btn {
+    padding: 13px 16px;
+    font-size: 14px;
+    color: #888;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-family: inherit;
+    transition: color 0.12s;
+  }
+  .tab-btn:hover { color: #111; }
+  .tab-btn.active { color: #111; border-bottom-color: #22c55e; font-weight: 600; }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; padding: 24px 28px; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section row label (AI DIGEST / TOP STORIES style) ── */
+  .section-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-label-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888;
+  }
+  .section-label-left .s-icon { font-size: 14px; color: #22c55e; }
+  .section-label-meta { font-size: 12px; color: #aaa; }
+
+  /* ── TL;DR card (green bordered) ── */
+  .tldr-card {
+    border: 1px solid #e8f5e9;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    background: #fff;
+  }
+  .tldr-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #22c55e;
+    margin-bottom: 10px;
+  }
+
+  .tldr-bolt {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .tldr-list { list-style: none; }
+  .tldr-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
+    color: #222;
+    padding: 3px 0;
+  }
+  .tldr-dot {
+    width: 7px; height: 7px;
+    background: #22c55e;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── Story card (TOP STORIES style) ── */
+  .story-card {
+    border-left: 3px solid #22c55e;
+    padding: 0 0 0 14px;
+    margin-bottom: 20px;
+  }
+  .story-title { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 6px; }
+  .story-body  { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 8px; }
+  .story-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .story-link  {
+    font-size: 13px; color: #22c55e; text-decoration: none; font-weight: 500;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .story-link:hover { text-decoration: underline; }
+
+  /* ── GitHub view toggle ── */
+  .gh-toggle {
+    display: flex;
+    border: 1px solid #e5e5e5;
+    border-radius: 7px;
+    overflow: hidden;
+    width: fit-content;
+    margin-bottom: 20px;
+  }
+  .gh-toggle-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    background: #fff;
+    color: #888;
+    font-family: inherit;
+    transition: all 0.12s;
+  }
+  .gh-toggle-btn:not(:last-child) { border-right: 1px solid #e5e5e5; }
+  .gh-toggle-btn.active { background: #22c55e; color: #fff; font-weight: 600; }
+
+  /* ── Leaderboard table ── */
+  .lb-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .lb-table thead tr {
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .lb-table th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #aaa;
+    padding: 6px 10px 8px;
+    text-align: left;
+  }
+  .lb-table th:not(:first-child):not(:nth-child(2)) { text-align: right; }
+  .lb-table tbody tr {
+    border-bottom: 1px solid #f7f7f7;
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  .lb-table tbody tr:last-child { border-bottom: none; }
+  .lb-table tbody tr:hover { background: #f9fafb; }
+  .lb-table td { padding: 11px 10px; vertical-align: middle; }
+
+  .lb-rank {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+  }
+  .lb-rank.r1 { background: #fef3c7; color: #92400e; }
+  .lb-rank.r2 { background: #f1f5f9; color: #475569; }
+  .lb-rank.r3 { background: #fff7ed; color: #9a3412; }
+  .lb-rank.rn { background: #f9fafb; color: #9ca3af; }
+
+  .lb-repo { font-size: 13px; font-weight: 600; color: #111; }
+  .lb-lang {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: #aaa; margin-top: 2px;
+  }
+  .lb-lang-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .lb-stars  { font-size: 13px; color: #888; text-align: right; }
+  .lb-growth { font-size: 13px; font-weight: 600; color: #16a34a; text-align: right; }
+  .lb-move   { font-size: 12px; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+  .mv-up   { color: #16a34a; font-weight: 600; }
+  .mv-down { color: #dc2626; font-weight: 600; }
+  .mv-new  {
+    font-size: 10px; font-weight: 700;
+    background: #dcfce7; color: #15803d;
+    padding: 2px 6px; border-radius: 999px;
+  }
+  .mv-same { color: #d1d5db; }
+
+  /* ── Change log ── */
+  .changelog { width: 100%; }
+  .cl-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 13px;
+  }
+  .cl-row:last-child { border-bottom: none; }
+  .cl-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cl-date { font-size: 11px; color: #bbb; width: 52px; flex-shrink: 0; }
+  .cl-text { flex: 1; color: #333; }
+  .cl-tag  {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .tag-enter { background: #dcfce7; color: #15803d; }
+  .tag-climb { background: #dbeafe; color: #1d4ed8; }
+  .tag-drop  { background: #fee2e2; color: #b91c1c; }
+  .tag-exit  { background: #f3f4f6; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">C</div>
+      <span class="logo-text">CONTENT GAP</span>
+    </div>
+
+    <div class="sidebar-project">
+      <div class="project-avatar"></div>
+      <div>
+        <div class="project-name">Baskaran Builds</div>
+        <div class="project-ws">Baskaran's Workspace</div>
+      </div>
+      <span class="project-chevron">⌄</span>
+    </div>
+
+    <div class="nav-label">Navigation</div>
+    <a class="nav-item" href="#"><span class="nav-icon">○</span> Analysis</a>
+    <a class="nav-item" href="#"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span> Personas</a>
+    <a class="nav-item" href="#"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg></span> Content</a>
+    <a class="nav-item" href="#"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> X Trends</a>
+    <a class="nav-item active" href="#"><span class="nav-icon" style="color:#22c55e">⬡</span> GitHub Trends</a>
+    <a class="nav-item" href="#"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg></span> History</a>
+  </aside>
+
+  <!-- ══ MAIN PANEL ══ -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">GitHub Trends</div>
+        <div class="page-date">May 9, 2026</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Today
+        </div>
+        <div class="topbar-icon-btn" onclick="handleRefresh(this)" title="Refresh (once per day)">↻</div>
+        <div class="topbar-icon-btn">⚙</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('summary', this)">Summary</button>
+      <button class="tab-btn" onclick="switchTab('weekly', this)">Weekly</button>
+      <button class="tab-btn" onclick="switchTab('monthly', this)">Monthly</button>
+      <button class="tab-btn" onclick="switchTab('changelog', this)">Change Log</button>
+    </div>
+
+    <!-- ── SUMMARY TAB ── -->
+    <div class="tab-panel active" id="panel-summary">
+
+      <!-- AI Digest header -->
+      <div class="section-label">
+        <div class="section-label-left">
+          <span class="s-icon">✦</span>
+          AI DIGEST
+        </div>
+        <div class="section-label-meta">10 repos · 3 periods · Generated 08:00 AM</div>
+      </div>
+
+      <!-- TL;DR card -->
+      <div class="tldr-card">
+        <div class="tldr-header"><span class="tldr-bolt"></span>TL;DR</div>
+        <ul class="tldr-list">
+          <li><span class="tldr-dot"></span>shadcn/ui tops this week's star growth with +2,140 stars.</li>
+          <li><span class="tldr-dot"></span>3 new repos entered the weekly top 10, including vitejs/vite.</li>
+          <li><span class="tldr-dot"></span>llama.cpp leads monthly with +18,400 stars — AI tooling dominates.</li>
+        </ul>
+      </div>
+
+      <!-- Top Stories -->
+      <div class="section-label" style="margin-top:8px;">
+        <div class="section-label-left">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>TOP STORIES
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="story-title">shadcn/ui Climbs to #1 This Week</div>
+        <div class="story-body">shadcn/ui jumped from #3 to #1 in the weekly leaderboard, gaining 2,140 stars in 7 days. The TypeScript component library continues to see strong adoption as developers build with React and Next.js.</div>
+        <div class="story-links">
+          <a class="story-link" href="#">@shadcn</a>
+          <a class="story-link" href="#">View repo ↗</a>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="story-title">llama.cpp Dominates Monthly at +18.4k Stars</div>
+        <div class="story-body">ggerganov/llama.cpp holds the #1 monthly spot with 18,400 new stars, driven by ongoing interest in running large language models locally. The C++ project now has over 112k total stars.</div>
+        <div class="story-links">
+          <a class="story-link" href="#">@ggerganov</a>
+          <a class="story-link" href="#">View repo ↗</a>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="story-title">vitejs/vite and apache/superset Enter Weekly Top 10</div>
+        <div class="story-body">Two new entrants joined the weekly leaderboard on May 8th — vitejs/vite and apache/superset — displacing denoland/deno which dropped out after a slower growth week.</div>
+        <div class="story-links">
+          <a class="story-link" href="#">View repo ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WEEKLY TAB ── -->
+    <div class="tab-panel" id="panel-weekly">
+      <div class="section-label">
+        <div class="section-label-left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H3V3h18v6h-3"/><path d="M12 15c-4 0-6-3-6-6h12c0 3-2 6-6 6z"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg> WEEKLY LEADERBOARD</div>
+        <div class="section-label-meta">Top 10 — sorted by star growth</div>
+      </div>
+      <table class="lb-table" id="table-weekly"></table>
+
+      <div class="section-label" style="margin-top:8px;">
+        <div class="section-label-left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#22c55e"/><circle cx="3" cy="12" r="1" fill="#22c55e"/><circle cx="3" cy="18" r="1" fill="#22c55e"/></svg> WEEKLY CHANGE LOG</div>
+      </div>
+      <div id="log-weekly" class="changelog"></div>
+    </div>
+
+    <!-- ── MONTHLY TAB ── -->
+    <div class="tab-panel" id="panel-monthly">
+      <div class="section-label">
+        <div class="section-label-left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H3V3h18v6h-3"/><path d="M12 15c-4 0-6-3-6-6h12c0 3-2 6-6 6z"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg> MONTHLY LEADERBOARD</div>
+        <div class="section-label-meta">Top 10 — sorted by star growth</div>
+      </div>
+      <table class="lb-table" id="table-monthly"></table>
+
+      <div class="section-label" style="margin-top:8px;">
+        <div class="section-label-left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#22c55e"/><circle cx="3" cy="12" r="1" fill="#22c55e"/><circle cx="3" cy="18" r="1" fill="#22c55e"/></svg> MONTHLY CHANGE LOG</div>
+      </div>
+      <div id="log-monthly" class="changelog"></div>
+    </div>
+
+    <!-- ── CHANGE LOG TAB (all) ── -->
+    <div class="tab-panel" id="panel-changelog">
+
+      <!-- Daily leaderboard inside changelog tab -->
+      <div class="section-label">
+        <div class="section-label-left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H3V3h18v6h-3"/><path d="M12 15c-4 0-6-3-6-6h12c0 3-2 6-6 6z"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg> DAILY LEADERBOARD</div>
+        <div class="section-label-meta">Today · May 9, 2026</div>
+      </div>
+      <table class="lb-table" id="table-daily"></table>
+
+      <div class="section-label" style="margin-top:8px;">
+        <div class="section-label-left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#22c55e"/><circle cx="3" cy="12" r="1" fill="#22c55e"/><circle cx="3" cy="18" r="1" fill="#22c55e"/></svg> ALL CHANGES</div>
+        <div class="section-label-meta">Last 10 days</div>
+      </div>
+      <div id="log-all" class="changelog"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────────────────
+
+const LC = {
+  TypeScript:'#3178c6', Python:'#3572A5', 'C++':'#f34b7d',
+  Go:'#00add8', Rust:'#dea584', JavaScript:'#f1e05a', Java:'#b07219'
+};
+
+const WEEKLY = [
+  { repo:'shadcn/ui',              lang:'TypeScript', stars:78200,  growth:2140,  prev:3    },
+  { repo:'vercel/ai-sdk',          lang:'TypeScript', stars:45300,  growth:1830,  prev:5    },
+  { repo:'ggerganov/llama.cpp',    lang:'C++',        stars:112400, growth:1620,  prev:1    },
+  { repo:'ollama/ollama',          lang:'Go',         stars:89300,  growth:1510,  prev:2    },
+  { repo:'microsoft/TypeScript',   lang:'TypeScript', stars:101200, growth:1290,  prev:4    },
+  { repo:'astro-build/astro',      lang:'TypeScript', stars:47800,  growth:1080,  prev:7    },
+  { repo:'apache/superset',        lang:'TypeScript', stars:63100,  growth:960,   prev:null },
+  { repo:'run-llama/llama_index',  lang:'Python',     stars:38900,  growth:880,   prev:6    },
+  { repo:'langchain-ai/langchain', lang:'Python',     stars:97400,  growth:740,   prev:8    },
+  { repo:'vitejs/vite',            lang:'TypeScript', stars:71200,  growth:680,   prev:null },
+];
+
+const MONTHLY = [
+  { repo:'ggerganov/llama.cpp',    lang:'C++',        stars:112400, growth:18400, prev:1    },
+  { repo:'ollama/ollama',          lang:'Go',         stars:89300,  growth:16200, prev:2    },
+  { repo:'langchain-ai/langchain', lang:'Python',     stars:97400,  growth:14800, prev:3    },
+  { repo:'shadcn/ui',              lang:'TypeScript', stars:78200,  growth:13600, prev:5    },
+  { repo:'microsoft/TypeScript',   lang:'TypeScript', stars:101200, growth:11900, prev:4    },
+  { repo:'run-llama/llama_index',  lang:'Python',     stars:38900,  growth:9400,  prev:7    },
+  { repo:'vercel/ai-sdk',          lang:'TypeScript', stars:45300,  growth:8700,  prev:9    },
+  { repo:'vitejs/vite',            lang:'TypeScript', stars:71200,  growth:7800,  prev:6    },
+  { repo:'astro-build/astro',      lang:'TypeScript', stars:47800,  growth:7100,  prev:null },
+  { repo:'apache/superset',        lang:'TypeScript', stars:63100,  growth:6900,  prev:null },
+];
+
+const DAILY = [
+  { repo:'shadcn/ui',              lang:'TypeScript', stars:78200,  growth:312,   prev:2    },
+  { repo:'ggerganov/llama.cpp',    lang:'C++',        stars:112400, growth:298,   prev:1    },
+  { repo:'ollama/ollama',          lang:'Go',         stars:89300,  growth:241,   prev:3    },
+  { repo:'vercel/ai-sdk',          lang:'TypeScript', stars:45300,  growth:189,   prev:5    },
+  { repo:'microsoft/TypeScript',   lang:'TypeScript', stars:101200, growth:175,   prev:4    },
+  { repo:'vitejs/vite',            lang:'TypeScript', stars:71200,  growth:162,   prev:null },
+  { repo:'langchain-ai/langchain', lang:'Python',     stars:97400,  growth:148,   prev:7    },
+  { repo:'astro-build/astro',      lang:'TypeScript', stars:47800,  growth:131,   prev:6    },
+  { repo:'apache/superset',        lang:'TypeScript', stars:63100,  growth:118,   prev:null },
+  { repo:'run-llama/llama_index',  lang:'Python',     stars:38900,  growth:97,    prev:8    },
+];
+
+const CHANGES_WEEKLY = [
+  { date:'May 8', text:'apache/superset entered weekly top 10',       type:'enter' },
+  { date:'May 8', text:'vitejs/vite entered weekly top 10 (new)',      type:'enter' },
+  { date:'May 7', text:'vercel/ai-sdk climbed from #5 → #2',          type:'climb' },
+  { date:'May 7', text:'astro-build/astro climbed from #7 → #6',      type:'climb' },
+  { date:'May 6', text:'run-llama/llama_index dropped #6 → #8',       type:'drop'  },
+  { date:'May 5', text:'denoland/deno exited weekly top 10',           type:'exit'  },
+  { date:'May 5', text:'shadcn/ui climbed from #3 → #1',              type:'climb' },
+];
+
+const CHANGES_MONTHLY = [
+  { date:'May 4', text:'pytorch/pytorch entered monthly top 10',       type:'enter' },
+  { date:'May 3', text:'astro-build/astro entered monthly top 10',     type:'enter' },
+  { date:'May 2', text:'nvm-sh/nvm exited monthly top 10',             type:'exit'  },
+  { date:'May 1', text:'apache/superset entered monthly top 10 (new)', type:'enter' },
+  { date:'Apr 30',text:'langchain dropped from #2 → #3 (monthly)',     type:'drop'  },
+];
+
+const CHANGES_ALL = [...CHANGES_WEEKLY, ...CHANGES_MONTHLY].sort((a,b) => b.date.localeCompare(a.date));
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const REFRESH_KEY = 'cg_gh_last_refresh';
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function fmtN(n)    { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n); }
+function fmtG(g)    { return '+' + (g >= 1000 ? (g/1000).toFixed(1)+'k' : g); }
+function rankClass(i){ return ['r1','r2','r3'][i] ?? 'rn'; }
+
+// ── Render leaderboard ────────────────────────────────────────────────────────
+
+function renderTable(tableId, data) {
+  const t = document.getElementById(tableId);
+  const head = `<thead><tr>
+    <th style="width:36px">#</th>
+    <th>Repository</th>
+    <th>Stars</th>
+    <th>Growth</th>
+    <th>Move</th>
+  </tr></thead>`;
+
+  const rows = data.map((d,i) => {
+    const move = d.prev === null
+      ? `<span class="mv-new">NEW</span>`
+      : d.prev - i === 0
+        ? `<span class="mv-same">—</span>`
+        : d.prev - i > 0
+          ? `<span class="mv-up">↑${d.prev - i}</span>`
+          : `<span class="mv-down">↓${i - d.prev}</span>`;
+
+    const dot = LC[d.lang]
+      ? `<span class="lb-lang-dot" style="background:${LC[d.lang]}"></span>`
+      : '';
+
+    return `<tr>
+      <td><div class="lb-rank ${rankClass(i)}">${i+1}</div></td>
+      <td>
+        <div class="lb-repo">${d.repo}</div>
+        <div class="lb-lang">${dot}${d.lang}</div>
+      </td>
+      <td class="lb-stars">${fmtN(d.stars)}</td>
+      <td class="lb-growth">${fmtG(d.growth)}</td>
+      <td><div class="lb-move">${move}</div></td>
+    </tr>`;
+  }).join('');
+
+  t.innerHTML = head + `<tbody>${rows}</tbody>`;
+}
+
+// ── Render change log ─────────────────────────────────────────────────────────
+
+function renderLog(containerId, changes) {
+  const typeLabel = { enter:'Entered', climb:'Climbed', drop:'Dropped', exit:'Exited' };
+  const dotColor  = { enter:'#22c55e', climb:'#3b82f6', drop:'#ef4444', exit:'#9ca3af' };
+  const tagClass  = { enter:'tag-enter', climb:'tag-climb', drop:'tag-drop', exit:'tag-exit' };
+
+  document.getElementById(containerId).innerHTML = changes.map(c => `
+    <div class="cl-row">
+      <span class="cl-dot" style="background:${dotColor[c.type]}"></span>
+      <span class="cl-date">${c.date}</span>
+      <span class="cl-text">${c.text}</span>
+      <span class="cl-tag ${tagClass[c.type]}">${typeLabel[c.type]}</span>
+    </div>
+  `).join('');
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Refresh (once per day) ────────────────────────────────────────────────────
+
+function handleRefresh(btn) {
+  const stored = localStorage.getItem(REFRESH_KEY);
+  const today  = todayStr();
+
+  if (stored === today) {
+    const ms = new Date().setHours(24,0,0,0) - Date.now();
+    const h  = Math.floor(ms / 3600000);
+    const m  = Math.floor((ms % 3600000) / 60000);
+    btn.title = `Already refreshed today. Next refresh in ${h}h ${m}m`;
+    btn.style.color = '#f59e0b';
+    setTimeout(() => { btn.style.color = ''; btn.title = 'Refresh (once per day)'; }, 2500);
+    return;
+  }
+
+  btn.innerHTML = '⟳';
+  btn.style.opacity = '0.5';
+
+  setTimeout(() => {
+    localStorage.setItem(REFRESH_KEY, today);
+    btn.innerHTML = '✓';
+    btn.style.opacity = '1';
+    btn.style.color = '#22c55e';
+    setTimeout(() => {
+      btn.innerHTML = '↻';
+      btn.style.color = '';
+    }, 2000);
+  }, 1200);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+renderTable('table-weekly',  WEEKLY);
+renderTable('table-monthly', MONTHLY);
+renderTable('table-daily',   DAILY);
+renderLog('log-weekly',  CHANGES_WEEKLY);
+renderLog('log-monthly', CHANGES_MONTHLY);
+renderLog('log-all',     CHANGES_ALL);
+</script>
+</body>
+</html>
